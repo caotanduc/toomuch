@@ -1,7 +1,7 @@
 [package]
 name = "toomuch"
 version = "0.0.1"
-edition = "2024"
+edition = "2021"
 authors = ["Cao Tan Duc <ductancao.work@gmail.com>"]
 license = "MIT"
 description = "A GNU timeout-compatible command wrapper with interactive suspend/resume support"
@@ -24,3 +24,6 @@ terminal_size = "0.3"
 [[bin]]
 name = "toomuch"
 path = "src/bin/toomuch.rs"
+
+[package.metadata.docs.rs]
+all-features = true
