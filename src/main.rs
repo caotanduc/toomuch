@@ -7,7 +7,6 @@ use std::{
     io::{self, Write},
     os::fd::AsRawFd,
     process::{Child, Command},
-    thread,
     time::{Duration, Instant},
 };
 use termios::{tcsetattr, Termios, ICANON, ECHO, TCSADRAIN};
@@ -45,7 +44,7 @@ fn draw_centered_prompt() {
         print!("└{}┘", "─".repeat(box_width - 2));
 
         // Draw the prompt text centered in the box
-        let prompt_text = "[watchrun] Time limit exceeded.";
+        let prompt_text = "[toomuch] Time limit exceeded.";
         let options_text = "(c) close | (r) resume";
 
         let text_row = start_row + 1;
@@ -72,7 +71,7 @@ fn draw_centered_prompt() {
     } else {
         // Fallback if terminal size cannot be determined
         print!("\x1b[2J\x1b[H");
-        print!("\x1b[31;1m[watchrun]\x1b[0m Time limit exceeded. (c) close | (r) resume > ");
+        print!("\x1b[31;1m[toomuch]\x1b[0m Time limit exceeded. (c) close | (r) resume > ");
         io::stdout().flush().unwrap();
     }
 }
@@ -98,7 +97,7 @@ fn update_prompt_with_guide() {
         }
 
         // Draw the guide text centered in the box
-        let line1 = "[watchrun] Resuming...";
+        let line1 = "[toomuch] Resuming...";
         let line2 = "Press Ctrl-L to rerender your editor.";
 
         let line1_row = start_row + 1;
@@ -118,7 +117,7 @@ fn update_prompt_with_guide() {
     } else {
         // Fallback if terminal size cannot be determined
         print!("\x1b[2J\x1b[H");
-        print!("\x1b[32m[watchrun]\x1b[0m Resuming... Press \x1b[1mCtrl-L\x1b[0m to rerender your editor.\n\r");
+        print!("\x1b[32m[toomuch]\x1b[0m Resuming... Press \x1b[1mCtrl-L\x1b[0m to rerender your editor.\n\r");
         io::stdout().flush().unwrap();
     }
 }
@@ -126,7 +125,7 @@ fn update_prompt_with_guide() {
 fn main() {
     let mut args: Vec<String> = env::args().skip(1).collect();
     if args.len() < 2 {
-        eprintln!("usage: watchrun <seconds> <command> [args...]");
+        eprintln!("usage: toomuch <seconds> <command> [args...]");
         std::process::exit(1);
     }
 
@@ -171,8 +170,6 @@ fn main() {
             prompted = true;
             suspend_and_prompt(&mut child, child_pid, parent_pgrp, stdin_fd);
         }
-
-        thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -217,15 +214,12 @@ fn suspend_and_prompt(child: &mut Child, child_pid: Pid, parent_pgrp: Pid, stdin
             let _ = child.kill();
             // CRITICAL: Clean up the mess before leaving
             reset_terminal(stdin_fd, parent_pgrp);
-            eprintln!("\r\n[watchrun] Process killed.");
+            eprintln!("\r\n[toomuch] Process killed.");
             std::process::exit(124);
         }
         _ => {
             // Update the prompt box to show guidance message
             update_prompt_with_guide();
-
-            // Give user a moment to see the message
-            thread::sleep(Duration::from_millis(1500));
 
             // 2. Restore the Editor's "Raw" mode
             if let Some(t) = saved_editor_termios {
