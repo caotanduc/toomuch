@@ -5,19 +5,23 @@ use std::{
     time::{Duration, Instant},
 };
 
-use nix::unistd::{Pid, getpgrp, setpgid};
+use nix::unistd::{getpgrp, setpgid, Pid};
 
 use crate::{job::suspend_and_prompt, signal::install_sigwinch};
 
 pub fn run(mut args: Vec<String>) {
     if args.len() < 2 {
-        eprintln!("usage: toomuch <seconds> <command> [args...]");
+        eprintln!("usage: toomuch <duration> <command> [args...]");
         std::process::exit(1);
     }
 
     install_sigwinch();
 
-    let timeout = Duration::from_secs(args.remove(0).parse().unwrap());
+    let timeout = parse_duration(&args.remove(0)).unwrap_or_else(|e| {
+        eprintln!("invalid timeout: {}", e);
+        std::process::exit(1);
+    });
+
     let cmd = args.remove(0);
 
     let stdin_fd = io::stdin().as_raw_fd();
@@ -43,5 +47,32 @@ pub fn run(mut args: Vec<String>) {
             prompted = true;
             suspend_and_prompt(&mut child, child_pid, parent_pgrp, stdin_fd);
         }
+    }
+}
+
+fn parse_duration(s: &str) -> Result<Duration, String> {
+    let s = s.trim();
+
+    if s.is_empty() {
+        return Err("empty duration".into());
+    }
+
+    // Split numeric part and unit
+    let (num, unit) = s
+        .chars()
+        .position(|c| !c.is_ascii_digit())
+        .map(|i| s.split_at(i))
+        .unwrap_or((s, "s")); // default to seconds if no unit
+
+    let value: u64 = num
+        .parse()
+        .map_err(|_| format!("invalid number in duration: {}", s))?;
+
+    match unit {
+        "s" => Ok(Duration::from_secs(value)),
+        "m" => Ok(Duration::from_secs(value * 60)),
+        "h" => Ok(Duration::from_secs(value * 60 * 60)),
+        "ms" => Ok(Duration::from_millis(value)),
+        _ => Err(format!("unknown duration unit: {}", unit)),
     }
 }

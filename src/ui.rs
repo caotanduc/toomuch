@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use terminal_size::{Height, Width, terminal_size};
+use terminal_size::{terminal_size, Height, Width};
 
 pub fn draw_centered_prompt() {
     if let Some((Width(w), Height(h))) = terminal_size() {

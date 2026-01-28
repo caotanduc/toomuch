@@ -1,12 +1,12 @@
 use nix::{
-    sys::signal::{Signal, kill},
-    unistd::{Pid, tcsetpgrp},
+    sys::signal::{kill, Signal},
+    unistd::{tcsetpgrp, Pid},
 };
 use std::process::Child;
 
 use crate::{
-    prompt::{PromptAction, prompt_user},
-    terminal::{TerminalState, reset_terminal},
+    prompt::{prompt_user, PromptAction},
+    terminal::{reset_terminal, TerminalState},
     ui::update_prompt_with_guide,
 };
 

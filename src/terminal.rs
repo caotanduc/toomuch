@@ -1,5 +1,5 @@
 use nix::unistd::Pid;
-use termios::{ECHO, ICANON, TCSADRAIN, Termios, tcsetattr};
+use termios::{tcsetattr, Termios, ECHO, ICANON, TCSADRAIN};
 
 pub struct TerminalState {
     fd: i32,
