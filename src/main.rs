@@ -11,6 +11,117 @@ use std::{
     time::{Duration, Instant},
 };
 use termios::{tcsetattr, Termios, ICANON, ECHO, TCSADRAIN};
+use terminal_size::{Width, Height, terminal_size};
+
+fn draw_centered_prompt() {
+    let size = terminal_size();
+    if let Some((Width(w), Height(h))) = size {
+        let term_width = w as usize;
+        let term_height = h as usize;
+
+        // Box dimensions
+        let box_width = 60;
+        let box_height = 5;
+
+        // Calculate top-left position to center the box
+        let start_row = (term_height / 2).saturating_sub(box_height / 2);
+        let start_col = (term_width / 2).saturating_sub(box_width / 2);
+
+        // Clear screen
+        print!("\x1b[2J");
+
+        // Draw top border
+        print!("\x1b[{};{}H", start_row, start_col);
+        print!("┌{}┐", "─".repeat(box_width - 2));
+
+        // Draw middle lines
+        for i in 1..box_height - 1 {
+            print!("\x1b[{};{}H", start_row + i, start_col);
+            print!("│{}│", " ".repeat(box_width - 2));
+        }
+
+        // Draw bottom border
+        print!("\x1b[{};{}H", start_row + box_height - 1, start_col);
+        print!("└{}┘", "─".repeat(box_width - 2));
+
+        // Draw the prompt text centered in the box
+        let prompt_text = "[watchrun] Time limit exceeded.";
+        let options_text = "(c) close | (r) resume";
+
+        let text_row = start_row + 1;
+        let options_row = start_row + 2;
+        let input_row = start_row + 3;
+
+        // Center the title text
+        let text_col = start_col + (box_width / 2).saturating_sub(prompt_text.len() / 2);
+        print!("\x1b[{};{}H", text_row, text_col);
+        print!("\x1b[31;1m{}\x1b[0m", prompt_text);
+
+        // Center the options text
+        let options_col = start_col + (box_width / 2).saturating_sub(options_text.len() / 2);
+        print!("\x1b[{};{}H", options_row, options_col);
+        print!("{}", options_text);
+
+        // Position cursor for input
+        let input_prompt = "> ";
+        let input_col = start_col + (box_width / 2).saturating_sub(input_prompt.len() / 2);
+        print!("\x1b[{};{}H", input_row, input_col);
+        print!("{}", input_prompt);
+
+        io::stdout().flush().unwrap();
+    } else {
+        // Fallback if terminal size cannot be determined
+        print!("\x1b[2J\x1b[H");
+        print!("\x1b[31;1m[watchrun]\x1b[0m Time limit exceeded. (c) close | (r) resume > ");
+        io::stdout().flush().unwrap();
+    }
+}
+
+fn update_prompt_with_guide() {
+    let size = terminal_size();
+    if let Some((Width(w), Height(h))) = size {
+        let term_width = w as usize;
+        let term_height = h as usize;
+
+        // Box dimensions (same as prompt)
+        let box_width = 60;
+        let box_height = 5;
+
+        // Calculate position (same as prompt for in-place update)
+        let start_row = (term_height / 2).saturating_sub(box_height / 2);
+        let start_col = (term_width / 2).saturating_sub(box_width / 2);
+
+        // Clear the interior of the box (don't redraw borders)
+        for i in 1..box_height - 1 {
+            print!("\x1b[{};{}H", start_row + i, start_col + 1);
+            print!("{}", " ".repeat(box_width - 2));
+        }
+
+        // Draw the guide text centered in the box
+        let line1 = "[watchrun] Resuming...";
+        let line2 = "Press Ctrl-L to rerender your editor.";
+
+        let line1_row = start_row + 1;
+        let line2_row = start_row + 2;
+
+        // Center line 1
+        let line1_col = start_col + (box_width / 2).saturating_sub(line1.len() / 2);
+        print!("\x1b[{};{}H", line1_row, line1_col);
+        print!("\x1b[32m{}\x1b[0m", line1);
+
+        // Center line 2
+        let line2_col = start_col + (box_width / 2).saturating_sub(line2.len() / 2);
+        print!("\x1b[{};{}H", line2_row, line2_col);
+        print!("Press \x1b[1mCtrl-L\x1b[0m to rerender your editor.");
+
+        io::stdout().flush().unwrap();
+    } else {
+        // Fallback if terminal size cannot be determined
+        print!("\x1b[2J\x1b[H");
+        print!("\x1b[32m[watchrun]\x1b[0m Resuming... Press \x1b[1mCtrl-L\x1b[0m to rerender your editor.\n\r");
+        io::stdout().flush().unwrap();
+    }
+}
 
 fn main() {
     let mut args: Vec<String> = env::args().skip(1).collect();
@@ -96,8 +207,7 @@ fn suspend_and_prompt(child: &mut Child, child_pid: Pid, parent_pgrp: Pid, stdin
     }
     
     // F. The Prompt
-    print!("\n\r\x1b[31;1m[watchrun]\x1b[0m Time limit exceeded. (c) close | (r) resume > ");
-    io::stdout().flush().unwrap();
+    draw_centered_prompt();
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
@@ -111,14 +221,18 @@ fn suspend_and_prompt(child: &mut Child, child_pid: Pid, parent_pgrp: Pid, stdin
             std::process::exit(124);
         }
         _ => {
-            eprintln!("\r\n[watchrun] Resuming...");
-            
-            // G. Restore the editor's "Raw" mode before handing it back
+            // Update the prompt box to show guidance message
+            update_prompt_with_guide();
+
+            // Give user a moment to see the message
+            thread::sleep(Duration::from_millis(1500));
+
+            // 2. Restore the Editor's "Raw" mode
             if let Some(t) = saved_editor_termios {
                 let _ = tcsetattr(stdin_fd, TCSADRAIN, &t);
             }
 
-            // H. Give terminal back to child and resume
+            // 3. Hand back to child
             let _ = tcsetpgrp(stdin_fd, child_pid);
             let _ = kill(child_pid, Signal::SIGCONT);
         }

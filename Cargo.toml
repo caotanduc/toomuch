@@ -13,3 +13,6 @@ signal-hook = "0.3"
 # For fine-grained control over SIGTTOU
 libc = "0.2"
 termios = "0.3"
+
+# For getting terminal size
+terminal_size = "0.3"
