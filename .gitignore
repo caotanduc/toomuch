@@ -1,1 +1,46 @@
+# ─── Rust / Cargo ────────────────────────────────────────────────────────────
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# ─── Editor / IDE ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ─── OS / Filesystem ──────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+
+# ─── Build / Artifacts ────────────────────────────────────────────────────────
+*.out
+*.log
+*.tmp
+
+# ─── Coverage / Profiling ─────────────────────────────────────────────────────
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+/test-output/
+/pty-dumps/
+
+# ─── Local environment overrides ──────────────────────────────────────────────
+.env
+.env.local
+
+# ─── Documentation builds ─────────────────────────────────────────────────────
+/doc/
+/docs/_build/
+
+# ─── Optional: release artifacts ──────────────────────────────────────────────
+*.tar.gz
+*.zip
 /target

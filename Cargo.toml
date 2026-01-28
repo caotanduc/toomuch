@@ -2,17 +2,25 @@
 name = "toomuch"
 version = "0.0.1"
 edition = "2024"
+authors = ["Cao Tan Duc <ductancao.work@gmail.com>"]
+license = "MIT"
+description = "A GNU timeout-compatible command wrapper with interactive suspend/resume support"
+repository = "https://github.com/caotanduc/toomuch"
+homepage = "https://github.com/caotanduc/toomuch"
+documentation = "https://docs.rs/toomuch"
+readme = "README.md"
+keywords = ["cli", "timeout", "process", "terminal", "unix"]
+categories = ["command-line-utilities", "os::unix-apis"]
+exclude = ["target/", ".github/"]
+
 
 [dependencies]
-# For Unix system calls (signals, process groups, etc.)
 nix = { version = "0.27", features = ["process", "signal", "term"] }
-
-# For safe signal handling via atomic flags
 signal-hook = "0.3"
-
-# For fine-grained control over SIGTTOU
 libc = "0.2"
 termios = "0.3"
-
-# For getting terminal size
 terminal_size = "0.3"
+
+[[bin]]
+name = "toomuch"
+path = "src/bin/toomuch.rs"
